@@ -1,0 +1,3 @@
+# Monitor
+
+`./sbt run`

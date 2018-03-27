@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="Server Monitor">
+    <meta name="author" content="eduardo@bruno.etc.br">
+
+    <title>Monitor Bootstrap</title>
+
+    <link href="static/bootstrap.min.css" rel="stylesheet">
+    <link href="static/template.css" rel="stylesheet">
+</head>
+
+<body>
+
+<div class="container-fluid">
+
+    <div class="row"  id="serverComponent">
+
+        <div v-if="!servers.length">Loading...</div>
+
+        <div class="col-md" v-for="server in servers">
+            <div class="card">
+                <div class="card-header">{{server.alias}}</div>
+                <div class="card-block">
+                    <h4 class="card-title">{{server.status}}</h4>
+                    <button class="btn btn-primary" :disabled="server.status != 'online'">Details</button>
+                </div>
+                <ul class="list-group list-group-flush" v-for="task in server.tasks">
+                    <li class="list-group-item">
+                        <template v-if="task.kind === 'mem'">
+                            Memory  &nbsp;
+                            <strong>{{task.data.used}}</strong> &nbsp; of &nbsp;
+                            <strong>{{task.data.total}}</strong> &nbsp;
+                            (<span>{{task.data.free}}</span> &nbsp; free)
+                        </template>
+                        <template v-else-if="task.kind === 'disk'">
+                            Disk (df)  &nbsp;
+                            <strong>{{task.data.fileSystem}}</strong> &nbsp; : &nbsp;
+                            <strong>{{task.data.used}}</strong> &nbsp; of  &nbsp;
+                            <strong>{{task.data.total}}</strong> &nbsp;
+                            (<span>{{task.data.available}}</span>, &nbsp;
+                            <span>{{task.data.percentage}}</span> )
+                        </template>
+                    </li>
+                </ul>
+                <div class="card-footer text-muted">
+                    {{server.lastSuccessTask || 'none'}}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<script src="static/tether.min.js"></script>
+<script src="static/jquery.min.js"></script>
+<script src="static/bootstrap.min.js"></script>
+<script src="static/vue.js"></script>
+<script src="static/axios.min.js"></script>
+
+<script src="main.js"></script>
+
+</body>
+</html>
