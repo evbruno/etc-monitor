@@ -5,14 +5,11 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
-import etc.bruno.Model.{ServerComponent, ServerTask}
+import etc.bruno.Model.{DataDiskTask, DataMemTask, ServerComponent, ServerTask}
 
 import scala.io.StdIn
 
-object WebServer extends App with EnableCORSDirectives {
-
-  import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-  import spray.json.DefaultJsonProtocol._
+object WebServer extends App with EnableCORSDirectives with ModelProtocol {
 
   implicit val system = ActorSystem("sys-monitor")
   implicit val materializer = ActorMaterializer()
@@ -33,7 +30,7 @@ object WebServer extends App with EnableCORSDirectives {
   val counter = system.actorOf(Props[MyCounterActor], "counter")
   val fakeApi = system.actorOf(Props[MyFakeAPI], "api")
 
-  implicit val serverComponentFormat = jsonFormat2(ApiCount)
+  implicit val apiCountFormat = jsonFormat2(ApiCount)
 
   val staticRoute = path("") {
     get {
@@ -118,23 +115,9 @@ class MyFakeAPI extends Actor with ActorLogging {
 
   private def tasks: List[ServerTask] = {
     List(
-      ServerTask("mem", Map(
-        "kind" -> "ram",
-        "total" -> "16000",
-        "used" -> "12000",
-        "free" -> "4000")),
-      ServerTask("disk", Map(
-        "fileSystem" -> "/dev/sda1",
-        "total" -> "240000",
-        "used" -> "40000",
-        "available" -> "20000",
-        "percentage" -> "75.5%")),
-      ServerTask("disk", Map(
-        "fileSystem" -> "/dev/sda3",
-        "total" -> "40000",
-        "used" -> "2000",
-        "available" -> "20000",
-        "percentage" -> "50%"))
+      ServerTask("mem", DataMemTask("ram", 16000, 12000, 4000)),
+      ServerTask("disk", DataDiskTask("/dev/sda1", 240000, 40000, 20000, 74.5f)),
+      ServerTask("disk", DataDiskTask("/dev/sda3", 40000, 2000, 20000, 50))
     )
   }
 
