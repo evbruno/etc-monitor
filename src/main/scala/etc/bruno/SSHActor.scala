@@ -6,6 +6,7 @@ import akka.util.Timeout
 import com.jcraft.jsch._
 import etc.bruno.ssh.SSHActor._
 
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.io.StdIn
 
@@ -47,6 +48,8 @@ object SSHActor {
 
   protected[ssh] case class ExecuteRequest(source: ActorRef, session: Session, cmd: SSHCommand)
 
+  protected[ssh] case class ProcessedRequest(source: ActorRef, session: Session, cmd: SSHCommand, content: String)
+
   protected[ssh] case class ReleaseSession(session: Session, cmd: SSHCommand)
 
 }
@@ -61,17 +64,20 @@ class SSHActor(creds: SSHCredentials) extends Actor with ActorLogging with SSHTr
 
     case cmd: SSHCommand =>
       log.info(s"""SSHCommand receive "$cmd"""")
-      (self ? RequestSession(sender, cmd)) pipeTo (self)
+      self ? RequestSession(sender, cmd) pipeTo self
 
     case RequestSession(source, cmd) =>
       log.info(s"""RequestSession receive "$cmd"""")
       val sess = createSession(creds)
-      sender ! ExecuteRequest(source, sess, cmd)
+      self ! ExecuteRequest(source, sess, cmd)
 
     case ExecuteRequest(source, session, cmd) =>
       log.info(s"""ExecuteRequest will run "$cmd"""")
-      val content = exec(session, cmd.cmd)
-      log.info(s"""ExecuteRequest run "$cmd" and got "$content"""")
+      val content = execAsync(session, cmd.cmd)
+      content.map(ProcessedRequest(source, session, cmd, _)) pipeTo self
+
+    case ProcessedRequest(source, session, cmd, content) =>
+      log.info(s"""Processed run"$cmd" and got "$content"""")
 
       self ! ReleaseSession(session, cmd)
       source ! SSHResult(cmd, content)
@@ -108,6 +114,11 @@ protected[ssh] trait SSHTrait {
     content
   }
 
+  def execAsync(session: Session, cmd: String)(implicit ec: ExecutionContext) =
+    Future {
+      exec(session, cmd)
+    }
+
 }
 
 class SSHActorConsumer(ssh: ActorRef) extends Actor with ActorLogging {
@@ -120,6 +131,8 @@ class SSHActorConsumer(ssh: ActorRef) extends Actor with ActorLogging {
     case "free" => ssh ! SSHCommand("free -m -w")
 
     case "proc" => ssh ! SSHCommand("nproc")
+
+    case SSHResult(SSHCommand("nproc"), content) => log.info(s"""Consumer wow... we have "${content.trim.toInt}" nprocs! """)
 
     case SSHResult(cmd, content) => log.info(s"""Consumer got cmd $cmd, with content: "$content""")
   }
