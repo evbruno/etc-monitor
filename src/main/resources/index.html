@@ -14,52 +14,181 @@
 
 <body>
 
-<div class="container-fluid">
+<header id="monitorCfg">
+    <div class="collapse bg-dark" id="navbarHeader">
+        <div class="container">
 
-    <div class="row"  id="serverComponent">
-
-        <div v-if="!servers.length">Loading...</div>
-
-        <div class="col-md" v-for="server in servers">
-            <div class="card">
-                <div class="card-header">{{server.alias}}</div>
-                <div class="card-block">
-                    <h4 class="card-title">{{server.status}}</h4>
-                    <button class="btn btn-primary" :disabled="server.status != 'online'">Details</button>
+            <div class="row">
+                <div class="col-sm-4 col-md-4 py-4">
+                    <h4 class="text-white">Server info</h4>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">version: <strong>1.0-SNAPSHOT</strong></li>
+                        <li class="list-group-item">agent refresh rate: <strong>30</strong>(s)</li>
+                    </ul>
                 </div>
-                <ul class="list-group list-group-flush" v-for="task in server.tasks">
-                    <li class="list-group-item">
-                        <template v-if="task.kind === 'mem'">
-                            Memory  &nbsp;
-                            <strong>{{task.data.used}}</strong> &nbsp; of &nbsp;
-                            <strong>{{task.data.total}}</strong> &nbsp;
-                            (<span>{{task.data.free}}</span> &nbsp; free)
-                        </template>
-                        <template v-else-if="task.kind === 'disk'">
-                            Disk (df)  &nbsp;
-                            <strong>{{task.data.fileSystem}}</strong> &nbsp; : &nbsp;
-                            <strong>{{task.data.used}}</strong> &nbsp; of  &nbsp;
-                            <strong>{{task.data.total}}</strong> &nbsp;
-                            (<span>{{task.data.available}}</span>, &nbsp;
-                            <span>{{task.data.percentage}}</span> )
-                        </template>
-                    </li>
-                </ul>
-                <div class="card-footer text-muted">
-                    {{server.lastSuccessTask || 'none'}}
+                <div class="col-sm-4 col-md-4 py-4">
+                    <h5 class="text-white">Servers</h5>
+                    <!--<label class="text-white"><input type="checkbox" checked="checked"> localhost 0 </label><br/>-->
+                    <!--<label class="text-white"><input type="checkbox" checked="checked"> localhost 0 </label><br/>-->
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item" v-for="s in ['local0', 'local1', 'docker0', 'sql-server']">
+                            <label>
+                                <input type="checkbox" checked />
+                                {{ s }}
+                            </label>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-sm-4 col-md-4 py-4">
+                    <h5 class="text-white">Visuals</h5>
+                    <form class="text-white">
+                        <div class="form-group row">
+                            <label for="columnCount" class="col-sm-6 col-form-label">Column count</label>
+                            <div class="col-sm-6">
+                                <select id="columnCount" class="form-control" v-model="sharedData.cols">
+                                    <option v-for="idx in [1, 2, 3, 4]" v-bind:value="idx">
+                                        {{ idx }} column(s)
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label for="columnCount" class="col-sm-6 col-form-label">Refresh rate (s)</label>
+                            <div class="col-sm-6">
+                                <select id="refreshRate" class="form-control" v-model="sharedData.refreshRate">
+                                    <option v-for="idx in [10, 30, 60, 120]" v-bind:value="idx">
+                                        {{ idx }}
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label for="checkboxShowMonTop" class="col-sm-6 col-form-label">Show monitor top</label>
+                            <div class="col-sm-6">
+                                <input type="checkbox" id="checkboxShowMonTop" v-model="sharedData.showMonitorTop"/>
+                            </div>
+                        </div>
+
+                    </form>
                 </div>
             </div>
+
+            <!--<div class="row">-->
+                <!--<div class="col-sm-8 col-md-7 py-4">-->
+                    <!--<h4 class="text-white">About</h4>-->
+                    <!--<p class="text-muted">Add some information about the album below, the author, or any other-->
+                        <!--background context. Make it a few sentences long so folks can pick up some informative tidbits.-->
+                        <!--Then, link them off to some social networking sites or contact information.</p>-->
+                <!--</div>-->
+                <!--<div class="col-sm-4 offset-md-1 py-4">-->
+                    <!--<h4 class="text-white">Column setup</h4>-->
+                    <!--<ul class="list-unstyled">-->
+                        <!--<li v-for="idx in [1,2,3,4]">-->
+                            <!--<a href="#" class="text-white" @click="updateCols(idx)">{{ idx }} column(s)</a>-->
+                            <!--<strong v-if="sharedData.cols == idx" class="text-white">(x)</strong>-->
+                        <!--</li>-->
+                        <!--&lt;!&ndash;<li><a href="#" class="text-white">Follow on Twitter</a></li>&ndash;&gt;-->
+                        <!--&lt;!&ndash;<li><a href="#" class="text-white">Like on Facebook</a></li>&ndash;&gt;-->
+                        <!--&lt;!&ndash;<li><a href="#" class="text-white">Email me</a></li>&ndash;&gt;-->
+                    <!--</ul>-->
+                <!--</div>-->
+            <!--</div>-->
+
+        </div>
+    </div>
+    <div class="navbar navbar-dark bg-dark box-shadow">
+        <div class="container d-flex justify-content-between">
+            <a href="#" class="navbar-brand d-flex align-items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+                <strong>etc-monitor</strong>
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarHeader"
+                    aria-controls="navbarHeader" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        </div>
+    </div>
+</header>
+
+<main role="main" id="serverComponent">
+
+    <div class="container-fluid py-3">
+
+        <div class="row">
+
+            <div class="col-md-12 py-2">
+                <input class="input" type="text" v-model="sharedData.cols"/>
+                Cols: <strong>{{sharedData.cols}}</strong>
+                ColStyle: <strong>{{colStyle()}}</strong>
+
+                <select v-model="sharedData.cols">
+                    <option value="1">1 column(s)</option>
+                    <option value="2">2 column(s)</option>
+                    <option value="3">3 column(s)</option>
+                    <option value="4">4 column(s)</option>
+                </select>
+
+                <select v-model="sharedData.cols">
+                    <option v-for="idx in [1, 2, 3, 4]" v-bind:value="idx">
+                        {{ idx }} column(s)
+                    </option>
+                </select>
+            </div>
+
+            <div v-if="!servers.length">Loading...</div>
+
+            <div v-bind:class="colStyle()" class="py-3" v-for="server in servers" :style="{ none: servers.length == 0 }">
+                <div class="card">
+                    <div class="card-header">{{server.alias}}</div>
+                    <div class="card-body">
+                        <h4 class="card-title">{{server.status}}</h4>
+                        <button class="btn btn-primary" :disabled="server.status != 'online'">Details</button>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush" v-for="task in server.tasks">
+                            <li class="list-group-item">
+                                <template v-if="task.kind === 'mem'">
+                                    Memory &nbsp;
+                                    <strong>{{task.data.used}}</strong> &nbsp; of &nbsp;
+                                    <strong>{{task.data.total}}</strong> &nbsp;
+                                    (<span>{{task.data.free}}</span> &nbsp; free)
+                                </template>
+                                <template v-else-if="task.kind === 'disk'">
+                                    Disk (df) &nbsp;
+                                    <strong>{{task.data.fileSystem}}</strong> &nbsp; : &nbsp;
+                                    <strong>{{task.data.used}}</strong> &nbsp; of &nbsp;
+                                    <strong>{{task.data.total}}</strong> &nbsp;
+                                    (<span>{{task.data.available}}</span>, &nbsp;
+                                    <span>{{task.data.percentage}}</span> )
+                                </template>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-footer text-muted">
+                        {{server.lastSuccessTask || 'none'}}
+                    </div>
+                </div>
+            </div>
+
         </div>
 
     </div>
 
-</div>
+</main>
+
 
 <script src="static/tether.min.js"></script>
 <script src="static/jquery.min.js"></script>
 <script src="static/bootstrap.min.js"></script>
 <script src="static/vue.js"></script>
 <script src="static/axios.min.js"></script>
+
 
 <script src="main.js"></script>
 
