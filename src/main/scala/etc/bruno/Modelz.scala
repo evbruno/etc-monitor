@@ -1,5 +1,13 @@
 package etc.bruno
 
+object MonitorDefaults {
+
+  val RefreshRate = 30
+
+  val TopDefaultCommand = "top -b -d0 -n1" :: "grep -B 10 sshd" :: Nil
+
+}
+
 object Configz {
 
   type Percentage = Float
@@ -8,7 +16,8 @@ object Configz {
                               host: Option[String] = None,
                               user: Option[String] = None,
                               password: Option[String] = None,
-                              port: Option[Int] = None)
+                              port: Option[Int] = None,
+                              tasks: Seq[TaskDefinition] = Seq.empty)
 
   abstract sealed class TaskDefinition(val `type`: String)
 
@@ -22,6 +31,9 @@ object Configz {
 
   case class GetUrlTask(address: String, validation: GetUrlValidation) extends TaskDefinition("url-get")
 
+  case class MonitorDefinition(refreshRate: Option[Int] = None,
+                               servers: Seq[ServerDefinition])
+
 }
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
@@ -29,15 +41,14 @@ import spray.json.{DefaultJsonProtocol, DeserializationException, JsNull, JsNumb
 
 trait ConfigzProtocol extends SprayJsonSupport with DefaultJsonProtocol {
 
-  import scala.language.implicitConversions
-
+//  import scala.language.implicitConversions
+//
 //  implicit def stringToJsTring(s: String): JsValue = JsString(s)
 //
 //  implicit def optNumberToJs(num: Option[Float]): JsValue = num.map(JsNumber(_)).getOrElse(JsNull)
 
   import Configz._
 
-  implicit val ServerDefinitionFormat = jsonFormat5(ServerDefinition)
 
   implicit val DiskTaskFormat0 = jsonFormat2(DiskTask)
 
@@ -68,6 +79,10 @@ trait ConfigzProtocol extends SprayJsonSupport with DefaultJsonProtocol {
       }
     }
   }
+
+  implicit val ServerDefinitionFormat = jsonFormat6(ServerDefinition)
+
+  implicit val MonitorConfigFormat = jsonFormat2(MonitorDefinition)
 
 //  implicit val MemTaskFormat = new RootJsonFormat[MemTask] {
 //
