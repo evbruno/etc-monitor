@@ -1,131 +1,147 @@
-var _DATA0 = {
-       'kind' : 'disk',
-       'fileSystem' : '/dev/sda3' ,
-       'used' : 100 ,
-       'total' : 70 ,
-       'available' : 30 ,
-       'percentage' : 30
-};
-var _DATA1 = {
-       'kind' : 'disk',
-       'fileSystem' : '/dev/sda4' ,
-       'used' : 100 ,
-       'total' : 2000 ,
-       'available' : 1900 ,
-       'percentage' : 20
-};
-var _DATA2 = {
-       'kind' : 'mem',
-       'used' : 7500 ,
-       'total' : 10000 ,
-       'free' : 1500
-};
-
 Vue.component('disk-item', {
-  props: ['obj'],
-  template: '#disk-item-template'
+    props: ['obj'],
+    template: '#disk-item-template'
 });
 
 Vue.component('mem-item', {
-  props: ['obj'],
-  template: '#mem-item-template'
+    props: ['obj'],
+    template: '#mem-item-template'
+});
+
+Vue.component('result-template', {
+    props: ['obj'],
+    template: '#result-template'
 });
 
 
 const __sharedData = {
     cols: 2,
-    refreshRate : 120,
-    showMonitorTop : true
+    refreshRate: 120,
+    refreshRateServer: 10,
+    showMonitorTop: true,
+    servers: [],
+    url: 'http://127.0.0.1:7788/api'
 }
 
 
 var monitorCfg = new Vue({
-  el: '#monitorCfg',
-  created: function() {
-    var loadCol = localStorage.getItem('cols')
-    this.updateCols(parseInt( loadCol || 2 ));
-  },
-  data: {
-    sharedData: __sharedData
-  },
-  methods: {
-     colStyle: function() {
-        return 'col-md-' + (12 / this.sharedData.cols);
+    el: '#monitorCfg',
+    created: function () {
+        var loadCol = localStorage.getItem('cols')
+        this.updateCols(parseInt(loadCol || 2));
+
+        // var self = this;
+        // var url = 'http://' + document.location.host + ':' + document.location.port + '/api';
+        // var url = 'http://127.0.0.1:7788/api';
+        //
+        // axios.get(url + '/servers').then(response => {
+        //     self.servers = response.data.servers;
+        // });
     },
-    updateCols: function(n) {
-         localStorage.setItem('cols', n);
-         this.sharedData.cols = n;
+    data: {
+        sharedData: __sharedData
     },
-    updateShowMonitorTop: function(n) {
-         //localStorage.setItem('cols', n);
-         //this.sharedData.cols = n;
-         console.log(n);
+    methods: {
+        colStyle: function () {
+            return 'col-md-' + (12 / this.sharedData.cols);
+        },
+        updateCols: function (n) {
+            localStorage.setItem('cols', n);
+            this.sharedData.cols = n;
+        },
+        updateShowMonitorTop: function (n) {
+            //localStorage.setItem('cols', n);
+            //this.sharedData.cols = n;
+            console.log(n);
+        }
+    },
+    watch: {
+        'sharedData.cols': function (val, oldVal) {
+            localStorage.setItem('cols', val);
+        },
+        'sharedData.refreshRate': function (val, oldVal) {
+            localStorage.setItem('refreshRate', val);
+        }
     }
-  },
-  watch: {
-    'sharedData.cols': function(val, oldVal) {
-        localStorage.setItem('cols', val);
-    },
-    'sharedData.refreshRate': function(val, oldVal) {
-        localStorage.setItem('refreshRate', val);
-    }
-  }
 });
 
-
 var app1 = new Vue({
-  el: '#serverComponent',
-  created: function() {
+    el: '#serverComponent',
+    created: function () {
+        var self = this;
+        //var url = 'http://' + document.location.host + ':' + document.location.port + '/api';
+        //var url = 'http://127.0.0.1:7788/api';
 
-    var self = this;
-
-    var reload = function() {
-          axios.get("http://10.42.12.136:7777/api/v2").then(response => {
-          self.servers = response.data;
-          if (self.servers && self.servers.length > 0) {
-          	self.servers[1].tasks = [ _DATA0, _DATA1, _DATA2 ];
-          }
+        axios.get(self.sharedData.url + '/servers').then(response => {
+            self.sharedData.servers = response.data.servers;
+            self.sharedData.refreshRate = response.data.refreshRate;
         });
-    };
-    //reload();
-    //setInterval(reload, 1000 * 120);
-    this.servers = [
-      {
-        alias: 'localhost',
-        status: 'online',
-        tasks: [ _DATA0, _DATA1, _DATA2 ]
-      },
-      {
-        alias: 'localhost-0',
-        status: 'offline',
-        tasks: [ ]
-      },
-      {
-        alias: 'localhost-1',
-        status: 'offline',
-        tasks: [ ]
-      },
-      {
-        alias: 'localhost-2',
-        status: 'offline',
-        tasks: [ ]
-      },
-    ];
-
-  },
-  data:
-    function () {
-        return  {
-            servers: [],
-            cols: 2,
-            sharedData: __sharedData
+    },
+    data:
+        function () {
+            return {
+                //servers: [],
+                cols: 2,
+                sharedData: __sharedData,
+                intervals: {},
+                count: -1
+            }
+        },
+    methods: {
+        colStyle: function () {
+            //return 'col-md-' + (12 / this.cols);
+            return 'col-md-' + (12 / this.sharedData.cols);
         }
-  },
-  methods: {
-     colStyle: function() {
-        //return 'col-md-' + (12 / this.cols);
-        return 'col-md-' + (12 / this.sharedData.cols);
+    },
+    watch: {
+        'sharedData.servers': function (val, oldVal) {
+            var self = this;
+
+            // var reload = function(a) {
+            //     return function() {
+            //         console.log('refreshing ' + a);
+            //     }
+            // };
+            //var w = new Worker("my_worker.js");
+            // w.onmessage = function(event){
+            //     //document.getElementById("result").innerHTML = event.data;
+            //     console.log(event.data);
+            //     self.count = event.data;
+            // };
+            //
+            // setTimeout(function () {
+            //     w.postMessage("hi there");
+            // }, 20000);
+            //
+            // setTimeout(function () {
+            //     w.terminate();
+            // }, 60000);
+
+            // FIXME clear old intervals ?
+            this.intervals = {};
+
+            if (val && val.length) {
+                for(var i = 0; i < val.length; i ++) {
+                    var server = val[i];
+
+                    var taskFun = function (responseAlias) {
+                        return function() {
+                            axios.get(self.sharedData.url + '/tasks/' + responseAlias).then(response => {
+                                console.log('response for ' + responseAlias + '>>' + response);
+                                var idx = self.sharedData.servers.findIndex(s => s.alias === responseAlias);
+                                self.sharedData.servers[idx].tasks = response.data;
+                            });
+                        };
+                    };
+
+                    var alias = server.alias;
+
+                    taskFun(alias).call();
+
+                    this.intervals[server.alias] = setInterval(taskFun(alias), self.sharedData.refreshRate * 1000);
+                }
+            }
+        }
     }
-  }
 });
 
